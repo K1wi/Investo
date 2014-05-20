@@ -62,17 +62,88 @@ namespace Investo
                 e.Effects = DragDropEffects.None;
             }
         }
+        private Brush makeBrush (string sColorHex)
+        {
+            BrushConverter bc = new BrushConverter();
+            Brush result = (Brush)bc.ConvertFrom(sColorHex);
+            result.Freeze();
+            return(result);
+        }
+
 
         private void ListBox_Drop(object sender, DragEventArgs e)
         {
+            // Green  : #998FEC21
+            Brush GreenBrush = makeBrush("#998FEC21");
+            // Yellow : #99F4FF17
+            Brush YellowBrush = makeBrush("#99F4FF17");
+            // Orange : #99F7A938
+            Brush OrangeBrush = makeBrush("#99F7A938");
+            // Red    : #99F12020
+            Brush RedBrush = makeBrush("#99F12020");
+            DataTable myTable = new DataTable();
+
+
+
+            List<DataTable> Tablelist = new List<DataTable>();
+            myTable.Columns.Add("Date");
+            myTable.Columns.Add("Open");
+            myTable.Columns.Add("High");
+            myTable.Columns.Add("Low");
+            myTable.Columns.Add("Close");
+            myTable.Columns.Add("Volume");
+           
+
+            string sCode;
+            int val;
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop, false);
+           // lstbox_Dropped.Items.Add("?" + lstbox_Share_Code.Items[0].ToString() + "?");
             foreach (string fileName in files)
             {
+                sCode = System.IO.Path.GetFileNameWithoutExtension(fileName);
+                sCode = sCode.ToUpper();
                 if (System.IO.Path.GetExtension(fileName) == ".csv")
                 {
-                    lstbox_Dropped.Items.Add(System.IO.Path.GetFileNameWithoutExtension(fileName) + "\t - \t" + fileName);
+                    string[] cvsRows = System.IO.File.ReadAllLines(fileName);
+                   
+                    lstbox_Dropped.Items.Add(cvsRows[0]);
+                    lstbox_Dropped.Items.Add(cvsRows[1]);
+                    lstbox_Dropped.Items.Add(cvsRows[2]);
+                    string[] fields = null;
+                    foreach (string cvsRow in cvsRows.Skip(1))
+                    {
+                        
+                        fields = cvsRow.Split(',');
+                        DataRow row = myTable.NewRow();
+                        row.ItemArray = fields;
+                        myTable.Rows.Add(row);
+                    }
+                    
+                   
+                    
                     CSV_FILE_PATHS.Add(fileName);
+                   
+                    
+
+                    val = (int)tblAdaptShare.sqlCheckIfCodeExists(sCode);
+                    TextBlock tmpTxtBlock = new TextBlock();
+                    tmpTxtBlock.Text = sCode + "\t - \t" + fileName + "\t\t\t\t\t\t\t";
+
+                    if (val == 0)
+                        tmpTxtBlock.Background = RedBrush;
+                    else
+                    {
+                        tmpTxtBlock.Background = GreenBrush;
+                    }
+
+                    //tmpTxtBlock.Opacity = 0.9;
+
+                    tmpTxtBlock.FontWeight = FontWeights.Bold;
+
+                    lstbox_Dropped.Items.Add(tmpTxtBlock);
                 }
+             
+
             }
         }
 
@@ -88,7 +159,7 @@ namespace Investo
             dtShare = tblAdaptShare.GetData();
             dtMarket = tblAdaptMarket.GetData();
             dtData = tblAdaptData.GetData();
-
+            
             DataRow[] dr = dtCountry.Select("ID = 1");
             if (dr.Length > 0)
                 foreach (DataRow row in dr)
@@ -110,18 +181,14 @@ namespace Investo
 
         }
 
-        private void Button_Click_1(object sender, RoutedEventArgs e)
-        {
-            resetlstbox_Dropped();
-        }
 
         private void resetlstbox_Dropped()
         {
             lstbox_Dropped.Items.Clear();
             TextBlock s = new TextBlock();
             s.Text = "FILE\t   \tPATH";
-            s.Background = Brushes.Yellow;
-            s.Opacity = 0.9;
+           // s.Background = Brushes.Yellow;
+           // s.Opacity = 0.9;
             
             s.FontWeight = FontWeights.UltraBold;
             lstbox_Dropped.Items.Add(s);
@@ -158,6 +225,21 @@ namespace Investo
                 System.Windows.Data.CollectionViewSource tblShareViewSource = ((System.Windows.Data.CollectionViewSource)(this.FindResource("tblShareViewSource")));
                 tblShareViewSource.View.MoveCurrentToFirst();
              * */
+        }
+
+        private void btn_Clear_Click(object sender, RoutedEventArgs e)
+        {
+            resetlstbox_Dropped();
+        }
+
+        private void lstbox_Share_Code_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            lstbox_Dropped.Items.Add("?"  + "?");
+        }
+
+        private void lstbox_Dropped_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+
         }
 
 

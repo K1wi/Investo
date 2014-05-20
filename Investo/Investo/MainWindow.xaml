@@ -39,20 +39,18 @@
         </Style>
         <local:dbFinancial_DataDataSet x:Key="dbFinancial_DataDataSet"/>
         <CollectionViewSource x:Key="tblCountryViewSource" Source="{Binding tblCountry, Source={StaticResource dbFinancial_DataDataSet}}"/>
+        <CollectionViewSource x:Key="tblShareViewSource" Source="{Binding tblShare, Source={StaticResource dbFinancial_DataDataSet}}"/>
     </Window.Resources>
     <Grid x:Name="LayoutRoot">
         <TabControl HorizontalAlignment="Stretch"  Margin="0,0,0,0" VerticalAlignment="Stretch"  BorderBrush="#FF6EEAEA" Background="White">
             <TabItem Header="DataBase" BorderBrush="White" Background="White">
-                <Grid Background="White" DataContext="{StaticResource tblCountryViewSource}">
+                <Grid Background="White" Margin="-11,-40,11,40" >
                     <Button Content="Update Database" HorizontalAlignment="Left"  VerticalAlignment="Top" Width="143" Height="30" Click="Button_Click" Margin="521,75,0,0" />
-
-
-
-                    <Button Content="Clear" HorizontalAlignment="Left"  VerticalAlignment="Top" Width="80" Height="25" Margin="10,80,0,0" Click="Button_Click_1" />
-                    <ListBox x:Name="lstbox_Dropped" ToolTip="Drop .csv items onto listbox" HorizontalAlignment="Left" Margin="10,110,0,0" Width="654" Height="314" VerticalAlignment="Top"  DragEnter="ListBox_DragEnter" Drop="ListBox_Drop" AllowDrop="True" />
+                    <Button x:Name="btn_Clear" Content="Clear" HorizontalAlignment="Left"  VerticalAlignment="Top" Width="80" Height="25" Margin="10,80,0,0" Click="btn_Clear_Click" />
+                    <ListBox x:Name="lstbox_Dropped" ToolTip="Drop .csv items onto listbox" HorizontalAlignment="Left" Margin="10,110,0,0" Width="654" Height="314" VerticalAlignment="Top"  DragEnter="ListBox_DragEnter" Drop="ListBox_Drop" AllowDrop="True" MouseDoubleClick="lstbox_Dropped_MouseDoubleClick" />
                     <Image HorizontalAlignment="Left" Height="70" VerticalAlignment="Top" Width="85" Source="Resources/AppIcon.png" />
                     <Label Content="Investo" HorizontalAlignment="Left" Margin="63,18,0,0" VerticalAlignment="Top" FontSize="36" FontWeight="Bold" FontStyle="Italic" FontFamily="Bookman Old Style"/>
-                    <ListBox HorizontalAlignment="Left" Height="586" Margin="726,110,0,0" VerticalAlignment="Top" Width="280"/>
+                    <ListBox x:Name="lstbox_Database" HorizontalAlignment="Left" Height="586" Margin="683,110,0,0" VerticalAlignment="Top" Width="280" Background="White"/>
                 </Grid>
             </TabItem>
             <TabItem Header="Graph" Foreground="Black" Background="White" BorderBrush="White">
