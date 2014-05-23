@@ -32,11 +32,8 @@ namespace Investo
     {
         public List<string> CSV_FILE_PATHS = new List<string>();
         private Investo.dbFinancial_DataDataSet dbFDataSet;
-        private Investo.dbFinancial_DataDataSetTableAdapters.tblCountryTableAdapter tblAdaptCountry;
-        private Investo.dbFinancial_DataDataSetTableAdapters.tblMarketTableAdapter tblAdaptMarket;
         private Investo.dbFinancial_DataDataSetTableAdapters.tblShareTableAdapter tblAdaptShare;
         private Investo.dbFinancial_DataDataSetTableAdapters.tblDataTableAdapter tblAdaptData;
-        private System.Windows.Data.CollectionViewSource tblCountryViewSource;
 
 
         public MainWindow()
@@ -62,12 +59,12 @@ namespace Investo
                 e.Effects = DragDropEffects.None;
             }
         }
-        private Brush makeBrush (string sColorHex)
+        private Brush makeBrush(string sColorHex)
         {
             BrushConverter bc = new BrushConverter();
             Brush result = (Brush)bc.ConvertFrom(sColorHex);
             result.Freeze();
-            return(result);
+            return (result);
         }
 
 
@@ -81,23 +78,41 @@ namespace Investo
             Brush OrangeBrush = makeBrush("#99F7A938");
             // Red    : #99F12020
             Brush RedBrush = makeBrush("#99F12020");
-            DataTable myTable = new DataTable();
-
-
 
             List<DataTable> Tablelist = new List<DataTable>();
-            myTable.Columns.Add("Date");
-            myTable.Columns.Add("Open");
-            myTable.Columns.Add("High");
-            myTable.Columns.Add("Low");
-            myTable.Columns.Add("Close");
-            myTable.Columns.Add("Volume");
-           
 
-            string sCode;
-            int val;
+            DataTable dbShareTable = new DataTable();
+            dbShareTable.Columns.Add("ID");
+            dbShareTable.Columns.Add("Share_Code");
+            dbShareTable.Columns.Add("Share_Name");
+            dbShareTable.Columns.Add("Market_Code");
+            dbShareTable.Columns.Add("Market_Country");
+
+            DataTable tmpDataTable = new DataTable();
+            tmpDataTable.Columns.Add("Date");
+            tmpDataTable.Columns.Add("Open");
+            tmpDataTable.Columns.Add("High");
+            tmpDataTable.Columns.Add("Low");
+            tmpDataTable.Columns.Add("Close");
+            tmpDataTable.Columns.Add("Volume");
+
+            DataTable dbDataTable = new DataTable();
+            dbDataTable.Columns.Add("ID");
+            dbDataTable.Columns.Add("FK");
+            dbDataTable.Columns.Add("Date");
+            dbDataTable.Columns.Add("Open");
+            dbDataTable.Columns.Add("High");
+            dbDataTable.Columns.Add("Low");
+            dbDataTable.Columns.Add("Close");
+            dbDataTable.Columns.Add("Volume");
+
+
+            TextBlock tmpTxtBlock = new TextBlock();
+
+            string sCode, dbStartDate, dbEndDate;
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop, false);
-           // lstbox_Dropped.Items.Add("?" + lstbox_Share_Code.Items[0].ToString() + "?");
+            string[] fields = null;
+            // lstbox_Dropped.Items.Add("?" + lstbox_Share_Code.Items[0].ToString() + "?");
             foreach (string fileName in files)
             {
                 sCode = System.IO.Path.GetFileNameWithoutExtension(fileName);
@@ -105,44 +120,76 @@ namespace Investo
                 if (System.IO.Path.GetExtension(fileName) == ".csv")
                 {
                     string[] cvsRows = System.IO.File.ReadAllLines(fileName);
-                   
+
                     lstbox_Dropped.Items.Add(cvsRows[0]);
                     lstbox_Dropped.Items.Add(cvsRows[1]);
                     lstbox_Dropped.Items.Add(cvsRows[2]);
-                    string[] fields = null;
-                    foreach (string cvsRow in cvsRows.Skip(1))
-                    {
-                        
-                        fields = cvsRow.Split(',');
-                        DataRow row = myTable.NewRow();
-                        row.ItemArray = fields;
-                        myTable.Rows.Add(row);
-                    }
-                    
-                   
-                    
-                    CSV_FILE_PATHS.Add(fileName);
-                   
-                    
 
-                    val = (int)tblAdaptShare.sqlCheckIfCodeExists(sCode);
-                    TextBlock tmpTxtBlock = new TextBlock();
                     tmpTxtBlock.Text = sCode + "\t - \t" + fileName + "\t\t\t\t\t\t\t";
 
-                    if (val == 0)
-                        tmpTxtBlock.Background = RedBrush;
-                    else
+                    foreach (string cvsRow in cvsRows.Skip(1))
                     {
-                        tmpTxtBlock.Background = GreenBrush;
+                        if (cvsRow.Contains(",,"))
+                        {
+                            Console.WriteLine("ERROR " + cvsRow + " has empty entries");
+                            break;
+                        }
+                        fields = cvsRow.Split(',');
+                        DataRow row = tmpDataTable.NewRow();
+                        row.ItemArray = fields;
+                        tmpDataTable.Rows.Add(row);
                     }
 
-                    //tmpTxtBlock.Opacity = 0.9;
+                    Tablelist.Add(tmpDataTable);
+                    CSV_FILE_PATHS.Add(fileName);
+                    dbShareTable = tblAdaptShare.GetDataByCode(sCode);
+                    if (dbShareTable.Rows.Count > 0)
+                    {
+                        if (dbShareTable.Rows.Count > 1)    // More than one share with same code (i.e JSE:FSR and Nasdaq:FSR)
+                            foreach (DataRow r in dbShareTable.Rows)
+                                Console.WriteLine("There is more than one with " + sCode + " namely: " + r[1]);
+
+                        Console.WriteLine("The ID that is Found : " + Convert.ToInt32(dbShareTable.Rows[0][0]).ToString());
+
+                        dbDataTable = tblAdaptData.GetDataByID(Convert.ToInt32(dbShareTable.Rows[0][0]));
+                        if (dbDataTable.Rows.Count > 0)
+                        {
+                            Console.WriteLine("Number of data rows for share : " + dbDataTable.Rows.Count.ToString());
+                            //  foreach (DataRow r in dbDataTable.Rows)
+                            //    Console.WriteLine("Date : " + r[2] + "; Open : " + r[3] + "; Hihg : " + r[4] + "; Low : " + r[5] + "; Close : " + r[6] + "; Volume : " + r[7]);
+
+                            dbStartDate = dbDataTable.Rows[0][2].ToString();
+                            dbEndDate = dbDataTable.Rows[dbDataTable.Rows.Count - 1][2].ToString();
+                            Console.WriteLine("StartDate : " + dbStartDate);
+                            Console.WriteLine("tmpStartDate : " + tmpDataTable.Rows[tmpDataTable.Rows.Count-1][0]);
+                            Console.WriteLine("EndDate : " + tmpDataTable.Rows[0][0].ToString());
+                            Console.WriteLine("tmpEndDate : " + DateTime.ParseExact(tmpDataTable.Rows[0][0].ToString(), "dd-MMM-yy", new System.Globalization.CultureInfo("en-US")));
+                        //    if (Convert.ToDateTime(dbEndDate) <= Convert.ToDateTime("tmpStartDate"))
+                        //    {
+                        //    }
+                        }
+                        else // No data for the share in DB 
+                        {
+                            dbStartDate = "-1";
+                            dbEndDate = "-1";
+                            tmpTxtBlock.Background = YellowBrush;
+                        }
+                        
+                        
+                        tmpTxtBlock.Background = GreenBrush;
+
+                    }
+                    else // Share not in DB yet
+                    {                        
+                        tmpTxtBlock.Background = RedBrush;
+
+                    }
+
 
                     tmpTxtBlock.FontWeight = FontWeights.Bold;
-
                     lstbox_Dropped.Items.Add(tmpTxtBlock);
                 }
-             
+
 
             }
         }
@@ -155,11 +202,9 @@ namespace Investo
             DataTable dtMarket = new DataTable();
             DataTable dtData = new DataTable();
 
-            dtCountry = tblAdaptCountry.GetData();
             dtShare = tblAdaptShare.GetData();
-            dtMarket = tblAdaptMarket.GetData();
             dtData = tblAdaptData.GetData();
-            
+
             DataRow[] dr = dtCountry.Select("ID = 1");
             if (dr.Length > 0)
                 foreach (DataRow row in dr)
@@ -187,9 +232,9 @@ namespace Investo
             lstbox_Dropped.Items.Clear();
             TextBlock s = new TextBlock();
             s.Text = "FILE\t   \tPATH";
-           // s.Background = Brushes.Yellow;
-           // s.Opacity = 0.9;
-            
+            // s.Background = Brushes.Yellow;
+            // s.Opacity = 0.9;
+
             s.FontWeight = FontWeights.UltraBold;
             lstbox_Dropped.Items.Add(s);
 
@@ -200,16 +245,12 @@ namespace Investo
         {
             dbFDataSet = ((Investo.dbFinancial_DataDataSet)(this.FindResource("dbFinancial_DataDataSet")));
 
-            // Load data into the table tblCountry. You can modify this code as needed.
-            tblAdaptCountry = new Investo.dbFinancial_DataDataSetTableAdapters.tblCountryTableAdapter();
-            tblAdaptCountry.Fill(dbFDataSet.tblCountry);
-            tblCountryViewSource = ((System.Windows.Data.CollectionViewSource)(this.FindResource("tblCountryViewSource")));
-            tblCountryViewSource.View.MoveCurrentToFirst();
-
-            // Load data into the table tblCountry. You can modify this code as needed.
-            tblAdaptMarket = new Investo.dbFinancial_DataDataSetTableAdapters.tblMarketTableAdapter();
-            tblAdaptMarket.Fill(dbFDataSet.tblMarket);
-
+            /*    // Load data into the table tblCountry. You can modify this code as needed.
+                tblAdaptCountry = new Investo.dbFinancial_DataDataSetTableAdapters.tblCountryTableAdapter();
+                tblAdaptCountry.Fill(dbFDataSet.tblCountry);
+                tblCountryViewSource = ((System.Windows.Data.CollectionViewSource)(this.FindResource("tblCountryViewSource")));
+                tblCountryViewSource.View.MoveCurrentToFirst();
+    */
 
             // Load data into the table tblCountry. You can modify this code as needed.
             tblAdaptShare = new Investo.dbFinancial_DataDataSetTableAdapters.tblShareTableAdapter();
@@ -234,7 +275,7 @@ namespace Investo
 
         private void lstbox_Share_Code_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            lstbox_Dropped.Items.Add("?"  + "?");
+            lstbox_Dropped.Items.Add("?" + "?");
         }
 
         private void lstbox_Dropped_MouseDoubleClick(object sender, MouseButtonEventArgs e)
