@@ -112,6 +112,7 @@ namespace Investo
             string sCode, dbStartDate, dbEndDate;
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop, false);
             string[] fields = null;
+            DateTime stmpEndDate;
             // lstbox_Dropped.Items.Add("?" + lstbox_Share_Code.Items[0].ToString() + "?");
             foreach (string fileName in files)
             {
@@ -160,10 +161,16 @@ namespace Investo
 
                             dbStartDate = dbDataTable.Rows[0][2].ToString();
                             dbEndDate = dbDataTable.Rows[dbDataTable.Rows.Count - 1][2].ToString();
+
+                            
                             Console.WriteLine("StartDate : " + dbStartDate);
                             Console.WriteLine("tmpStartDate : " + tmpDataTable.Rows[tmpDataTable.Rows.Count-1][0]);
                             Console.WriteLine("EndDate : " + tmpDataTable.Rows[0][0].ToString());
-                            Console.WriteLine("tmpEndDate : " + DateTime.ParseExact(tmpDataTable.Rows[0][0].ToString(), "dd-MMM-yy", new System.Globalization.CultureInfo("en-US")));
+
+                            stmpEndDate = DateTime.ParseExact(tmpDataTable.Rows[0][0].ToString(), "dd-MMM-yy",
+                                System.Globalization.CultureInfo.InvariantCulture);
+
+                            Console.WriteLine("tmpEndDate : " + stmpEndDate);
                         //    if (Convert.ToDateTime(dbEndDate) <= Convert.ToDateTime("tmpStartDate"))
                         //    {
                         //    }
