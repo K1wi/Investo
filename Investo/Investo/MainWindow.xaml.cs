@@ -88,13 +88,13 @@ namespace Investo
             dbShareTable.Columns.Add("Market_Code");
             dbShareTable.Columns.Add("Market_Country");
 
-            DataTable tmpDataTable = new DataTable();
-            tmpDataTable.Columns.Add("Date");
-            tmpDataTable.Columns.Add("Open");
-            tmpDataTable.Columns.Add("High");
-            tmpDataTable.Columns.Add("Low");
-            tmpDataTable.Columns.Add("Close");
-            tmpDataTable.Columns.Add("Volume");
+            DataTable csvDataTable = new DataTable();
+            csvDataTable.Columns.Add("Date");
+            csvDataTable.Columns.Add("Open");
+            csvDataTable.Columns.Add("High");
+            csvDataTable.Columns.Add("Low");
+            csvDataTable.Columns.Add("Close");
+            csvDataTable.Columns.Add("Volume");
 
             DataTable dbDataTable = new DataTable();
             dbDataTable.Columns.Add("ID");
@@ -107,27 +107,30 @@ namespace Investo
             dbDataTable.Columns.Add("Volume");
 
 
-            TextBlock tmpTxtBlock = new TextBlock();
+            TextBlock tmpTxtBlock;
 
             string sCode, dbStartDate, dbEndDate;
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop, false);
             string[] fields = null;
-            DateTime stmpEndDate;
+            DateTime DatabaseEndDate = DateTime.MinValue, DatabaseStartDate = DateTime.MinValue, csvStartDate = DateTime.MinValue, csvEndDate = DateTime.MinValue;
             // lstbox_Dropped.Items.Add("?" + lstbox_Share_Code.Items[0].ToString() + "?");
+            //For every file dropped on the listbox
             foreach (string fileName in files)
             {
                 sCode = System.IO.Path.GetFileNameWithoutExtension(fileName);
                 sCode = sCode.ToUpper();
+                // if the file is a .csv file
                 if (System.IO.Path.GetExtension(fileName) == ".csv")
                 {
+                    tmpTxtBlock = new TextBlock();
                     string[] cvsRows = System.IO.File.ReadAllLines(fileName);
 
-                    lstbox_Dropped.Items.Add(cvsRows[0]);
-                    lstbox_Dropped.Items.Add(cvsRows[1]);
-                    lstbox_Dropped.Items.Add(cvsRows[2]);
+                    tmpTxtBlock.Text = sCode + "\t - \t" + fileName;
+                 //   int tal = 300;
+                  //  tal -= fileName.Length;
+                  //  tmpTxtBlock.Text += " " + tal.ToString();
 
-                    tmpTxtBlock.Text = sCode + "\t - \t" + fileName + "\t\t\t\t\t\t\t";
-
+                    // for each row in the current file
                     foreach (string cvsRow in cvsRows.Skip(1))
                     {
                         if (cvsRow.Contains(",,"))
@@ -136,14 +139,21 @@ namespace Investo
                             break;
                         }
                         fields = cvsRow.Split(',');
-                        DataRow row = tmpDataTable.NewRow();
+                        DataRow row = csvDataTable.NewRow();
                         row.ItemArray = fields;
-                        tmpDataTable.Rows.Add(row);
-                    }
+                        csvDataTable.Rows.Add(row);
+                    }// end for each row in current file
 
-                    Tablelist.Add(tmpDataTable);
+                    Tablelist.Add(csvDataTable);
                     CSV_FILE_PATHS.Add(fileName);
+
+                    csvEndDate = DateTime.ParseExact(csvDataTable.Rows[0][0].ToString(), "dd-MMM-yy",
+                        System.Globalization.CultureInfo.InvariantCulture);
+                    csvStartDate = DateTime.ParseExact(csvDataTable.Rows[csvDataTable.Rows.Count - 1][0].ToString(), "dd-MMM-yy",
+                        System.Globalization.CultureInfo.InvariantCulture);
+
                     dbShareTable = tblAdaptShare.GetDataByCode(sCode);
+                    // if the share is in the database
                     if (dbShareTable.Rows.Count > 0)
                     {
                         if (dbShareTable.Rows.Count > 1)    // More than one share with same code (i.e JSE:FSR and Nasdaq:FSR)
@@ -153,49 +163,92 @@ namespace Investo
                         Console.WriteLine("The ID that is Found : " + Convert.ToInt32(dbShareTable.Rows[0][0]).ToString());
 
                         dbDataTable = tblAdaptData.GetDataByID(Convert.ToInt32(dbShareTable.Rows[0][0]));
+                        // if there are data available for the current share
                         if (dbDataTable.Rows.Count > 0)
                         {
-                            Console.WriteLine("Number of data rows for share : " + dbDataTable.Rows.Count.ToString());
+                            Console.WriteLine("Number of data rows for share " + sCode + " : " + dbDataTable.Rows.Count.ToString());
                             //  foreach (DataRow r in dbDataTable.Rows)
                             //    Console.WriteLine("Date : " + r[2] + "; Open : " + r[3] + "; Hihg : " + r[4] + "; Low : " + r[5] + "; Close : " + r[6] + "; Volume : " + r[7]);
 
                             dbStartDate = dbDataTable.Rows[0][2].ToString();
                             dbEndDate = dbDataTable.Rows[dbDataTable.Rows.Count - 1][2].ToString();
 
-                            
-                            Console.WriteLine("StartDate : " + dbStartDate);
-                            Console.WriteLine("tmpStartDate : " + tmpDataTable.Rows[tmpDataTable.Rows.Count-1][0]);
-                            Console.WriteLine("EndDate : " + tmpDataTable.Rows[0][0].ToString());
+                            Console.WriteLine("dbStartDate : " + dbStartDate);
+                            Console.WriteLine("dbEndDate : " + dbEndDate);
 
-                            stmpEndDate = DateTime.ParseExact(tmpDataTable.Rows[0][0].ToString(), "dd-MMM-yy",
-                                System.Globalization.CultureInfo.InvariantCulture);
 
-                            Console.WriteLine("tmpEndDate : " + stmpEndDate);
-                        //    if (Convert.ToDateTime(dbEndDate) <= Convert.ToDateTime("tmpStartDate"))
-                        //    {
-                        //    }
+                            DatabaseStartDate = DateTime.Parse(dbDataTable.Rows[0][2].ToString());
+                            DatabaseEndDate = DateTime.Parse(dbDataTable.Rows[dbDataTable.Rows.Count - 1][2].ToString());
+
+
+                            //    if (Convert.ToDateTime(dbEndDate) <= Convert.ToDateTime("tmpStartDate"))
+                            //    {
+                            //    }
+                            if (DatabaseEndDate <= csvEndDate)
+                            {
+                                if (DatabaseEndDate <= csvStartDate)
+                                    tmpTxtBlock.Background = RedBrush;
+                                else
+                                    tmpTxtBlock.Background = YellowBrush;
+
+                            }
+                            else if (DatabaseStartDate >= csvStartDate)
+                            {
+                                if (DatabaseStartDate >= csvEndDate)
+                                    tmpTxtBlock.Background = RedBrush;
+                                else
+                                    tmpTxtBlock.Background = YellowBrush;
+                            }
+                            else
+                                tmpTxtBlock.Background = GreenBrush;
                         }
                         else // No data for the share in DB 
                         {
                             dbStartDate = "-1";
                             dbEndDate = "-1";
+                            DatabaseStartDate = DateTime.MinValue;
+                            DatabaseEndDate = DateTime.MinValue;
                             tmpTxtBlock.Background = YellowBrush;
                         }
-                        
-                        
-                        tmpTxtBlock.Background = GreenBrush;
 
-                    }
+                    }// end if share not in database
                     else // Share not in DB yet
-                    {                        
-                        tmpTxtBlock.Background = RedBrush;
+                    {
+                        tmpTxtBlock.Background = OrangeBrush;
 
                     }
 
 
                     tmpTxtBlock.FontWeight = FontWeights.Bold;
                     lstbox_Dropped.Items.Add(tmpTxtBlock);
-                }
+
+
+                    /*   if (csvStartDate == DateTime.MinValue)
+                           lstbox_Dropped.Items.Add("csv starting date : -");//+ dbStartDate);
+                       else
+                           lstbox_Dropped.Items.Add("csv starting date : " + csvStartDate.ToShortDateString());
+                    */
+                    if (csvStartDate == DateTime.MinValue || csvEndDate == DateTime.MinValue)
+                        lstbox_Dropped.Items.Add(".csv Date range \t NO DATA FROM CSV");
+                    else
+                        lstbox_Dropped.Items.Add(".csv Date range \t " + csvStartDate.ToShortDateString() + " - " + csvEndDate.ToShortDateString());
+
+                    /*   if (csvEndDate == DateTime.MinValue)
+                           lstbox_Dropped.Items.Add("csv end date : -");//+ dbStartDate);
+                       else
+                           lstbox_Dropped.Items.Add("csv end date : " + csvEndDate.ToShortDateString());
+                    */
+
+                    if (DatabaseStartDate == DateTime.MinValue || DatabaseEndDate == DateTime.MinValue)
+                        lstbox_Dropped.Items.Add("DB Date range \t No data in DB");
+                    else
+                        lstbox_Dropped.Items.Add("DB Date range \t " + DatabaseStartDate.ToShortDateString() + " - " + DatabaseEndDate.ToShortDateString());
+
+                    dbDataTable.Clear();
+                    dbShareTable.Clear();
+                    DatabaseStartDate = DateTime.MinValue;
+                    DatabaseEndDate = DateTime.MinValue;
+                }// end if the file is .csv file
 
 
             }
@@ -285,10 +338,15 @@ namespace Investo
             lstbox_Dropped.Items.Add("?" + "?");
         }
 
-        private void lstbox_Dropped_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        private void lstbox_Dropped_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-
+            lstbox_Dropped.SelectedIndex = -1;
         }
+
+     
+
+       
+       
 
 
     }
